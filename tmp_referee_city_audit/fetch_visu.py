@@ -1,5 +1,6 @@
 import concurrent.futures
 import json
+import time
 from pathlib import Path
 
 import requests
@@ -17,10 +18,18 @@ SEASONS = [
 ]
 
 
-def request_json(method, url, **kwargs):
-    response = requests.request(method, url, timeout=10, **kwargs)
-    response.raise_for_status()
-    return response.json()
+def request_json(method, url, timeout=10, attempts=1, **kwargs):
+    last = None
+    for attempt in range(attempts):
+        try:
+            response = requests.request(method, url, timeout=timeout, **kwargs)
+            response.raise_for_status()
+            return response.json()
+        except Exception as exc:
+            last = exc
+            if attempt + 1 < attempts:
+                time.sleep(2 * (attempt + 1))
+    raise last
 
 
 def as_list(payload, *keys):
@@ -50,7 +59,7 @@ def fetch_roster(task):
     }
     try:
         payload = request_json(
-            "POST", PLAYER_URL,
+            "POST", PLAYER_URL, timeout=12, attempts=1,
             json={"command": "club", "season": season["id"], "id": club.get("id")},
             headers=HEADERS,
         )
@@ -67,7 +76,7 @@ def fetch_roster(task):
 
 def main():
     OUT.mkdir(exist_ok=True)
-    clubs_payload = request_json("GET", CLUBS_URL, headers={"Accept": "application/json"})
+    clubs_payload = request_json("GET", CLUBS_URL, timeout=35, attempts=5, headers={"Accept": "application/json"})
     clubs = [sanitize_club(x) for x in as_list(clubs_payload, "clubs", "data") if isinstance(x, dict)]
     tasks = [(season, club) for season in SEASONS for club in clubs if club.get("id") is not None]
     rosters = []
