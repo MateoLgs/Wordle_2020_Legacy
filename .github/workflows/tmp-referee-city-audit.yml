@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/tmp-referee-city-audit.yml'
       - 'tmp_referee_city_audit/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tmp_referee_city_audit/**'
   workflow_dispatch:
 
 permissions:
