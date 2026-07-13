@@ -18,7 +18,7 @@ SEASONS = [
 ]
 
 
-def request_json(method, url, timeout=10, attempts=1, **kwargs):
+def request_json(method, url, timeout=60, attempts=1, **kwargs):
     last = None
     for attempt in range(attempts):
         try:
@@ -59,7 +59,7 @@ def fetch_roster(task):
     }
     try:
         payload = request_json(
-            "POST", PLAYER_URL, timeout=12, attempts=1,
+            "POST", PLAYER_URL, timeout=75, attempts=1,
             json={"command": "club", "season": season["id"], "id": club.get("id")},
             headers=HEADERS,
         )
@@ -76,15 +76,15 @@ def fetch_roster(task):
 
 def main():
     OUT.mkdir(exist_ok=True)
-    clubs_payload = request_json("GET", CLUBS_URL, timeout=35, attempts=5, headers={"Accept": "application/json"})
+    clubs_payload = request_json("GET", CLUBS_URL, timeout=60, attempts=4, headers={"Accept": "application/json"})
     clubs = [sanitize_club(x) for x in as_list(clubs_payload, "clubs", "data") if isinstance(x, dict)]
     tasks = [(season, club) for season in SEASONS for club in clubs if club.get("id") is not None]
     rosters = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         futures = [pool.submit(fetch_roster, task) for task in tasks]
         for n, future in enumerate(concurrent.futures.as_completed(futures), 1):
             rosters.append(future.result())
-            if n % 50 == 0:
+            if n % 25 == 0:
                 print(f"Fetched {n}/{len(tasks)} rosters", flush=True)
     rosters.sort(key=lambda x: (-int(x.get("season_id") or -1), int(x.get("club_id") or -1)))
     (OUT / "clubs.json").write_text(json.dumps({"clubs": clubs}, ensure_ascii=False, indent=2), encoding="utf-8")
