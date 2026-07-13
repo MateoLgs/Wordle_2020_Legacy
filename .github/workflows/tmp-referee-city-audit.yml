@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: temporary-referee-city-audit
+  cancel-in-progress: true
+
 jobs:
   fetch-visu:
     runs-on: ubuntu-latest
