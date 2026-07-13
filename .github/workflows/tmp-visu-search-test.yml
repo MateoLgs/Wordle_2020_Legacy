@@ -5,6 +5,11 @@ on:
     paths:
       - '.github/workflows/tmp-visu-search-test.yml'
       - 'tmp_referee_city_audit/test_search.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tmp_referee_city_audit/test_search.py'
+      - 'tmp_referee_city_audit/search-trigger.txt'
   workflow_dispatch:
 permissions:
   contents: read
